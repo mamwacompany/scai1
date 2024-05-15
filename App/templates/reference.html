@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
+    <style>
+        /* Chat container styles */
+        .chat-container {
+            max-width: 600px;
+            margin: 20px auto; /* Added margin for spacing */
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            background-color: #e6e6e6;
+        }
+        .user {
+            text-align: right;
+        }
+        .assistant {
+            text-align: left;
+        }
+        .btn-reference {
+            margin-top: 10px; /* Adjusted margin for spacing */
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .document-session {
+            margin-top: 10px; /* Adjusted margin for spacing */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+        }
+
+        /* User input styles */
+        #user-input {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px; /* Added margin for spacing */
+        }
+        #user-question {
+            flex: 1;
+            margin-right: 10px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #send-btn {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="user-input">
+        <input type="text" id="user-question" placeholder="Ask a question...">
+        <button id="send-btn">Send</button>
+    </div>
+    <div class="chat-container">
+        <div id="chat-messages"></div>
+        <div id="document-session-container" style="display: none;"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const messagesContainer = document.getElementById('chat-messages');
+            const documentSessionContainer = document.getElementById('document-session-container');
+            const userInput = document.getElementById('user-question');
+            const sendBtn = document.getElementById('send-btn');
+            let referenceBtn = null;
+
+            sendBtn.addEventListener('click', () => {
+                const userQuestion = userInput.value.trim();
+                if (userQuestion !== '') {
+                    sendMessage('user', userQuestion);
+                    userInput.value = '';
+
+                    // Clear previous reference button and data
+                    if (referenceBtn) {
+                        referenceBtn.remove();
+                        documentSessionContainer.textContent = '';
+                    }
+
+                    fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ user_question: userQuestion })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const { response_text, additional_questions, document_session } = data;
+                        if (response_text) {
+                            sendMessage('assistant', response_text, 'response');
+                        }
+                        if (additional_questions) {
+                            additional_questions.forEach((question, index) => {
+                                sendMessage('assistant', `Additional Question ${index + 1}: ${question}`, 'additional_question');
+                            });
+                        }
+                        if (document_session) {
+                            referenceBtn = createReferenceButton(document_session);
+                            messagesContainer.appendChild(referenceBtn);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                }
+            });
+
+            function sendMessage(role, message, type = 'message') {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', role);
+                messageElement.textContent = message;
+                messagesContainer.appendChild(messageElement);
+            }
+
+            function createReferenceButton(documentSession) {
+                const referenceBtn = document.createElement('button');
+                referenceBtn.textContent = 'Reference';
+                referenceBtn.classList.add('btn-reference');
+                referenceBtn.addEventListener('click', () => {
+                    documentSessionContainer.textContent = `Document Session: ${documentSession}`;
+                    documentSessionContainer.style.display = 'block';
+                });
+                return referenceBtn;
+            }
+        });
+    </script>
+</body>
+</html>

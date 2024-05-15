@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        #chat-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .user {
+            background-color: #f0f0f0;
+            text-align: right;
+        }
+        .assistant {
+            background-color: #e2f7fb;
+            text-align: left;
+        }
+        .response {
+            font-weight: bold;
+        }
+        #audio-container {
+            margin-top: 20px;
+        }
+        #audio-player {
+            display: none; /* Hide by default */
+        }
+        #listen-btn {
+            display: none;
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <input type="text" id="user-input" placeholder="Type your question here...">
+        <button id="send-btn">Send</button>
+        <div id="audio-container">
+            <audio id="audio-player"></audio>
+            <button id="listen-btn">Listen to Audio</button>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#send-btn').on('click', function() {
+                var userQuestion = $('#user-input').val();
+                sendMessage('user', userQuestion);
+                fetchResponse(userQuestion);
+                $('#user-input').val(''); // Clear input after sending
+            });
+
+            $('#listen-btn').on('click', function() {
+                var audioPlayer = document.getElementById('audio-player');
+                if (audioPlayer.paused) {
+                    audioPlayer.play();
+                    $('#listen-btn').text('Stop Audio');
+                } else {
+                    audioPlayer.pause();
+                    $('#listen-btn').text('Listen to Audio');
+                }
+            });
+
+            function fetchResponse(userQuestion) {
+                $.ajax({
+                    type: 'POST',
+                    url: '/chat',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ 'user_question': userQuestion }),
+                    success: function(response) {
+                        displayResponse(response);
+                    },
+                    error: function(err) {
+                        console.error('Error fetching response:', err);
+                    }
+                });
+            }
+
+            function displayResponse(response) {
+                var responseText = response.response_text;
+                var additionalQuestions = response.additional_questions;
+                var audioData = response.audio_data;
+
+                sendMessage('assistant', responseText, 'response');
+                if (additionalQuestions && additionalQuestions.length > 0) {
+                    additionalQuestions.forEach(function(question, index) {
+                        sendMessage('assistant', `Additional Question ${index + 1}: ${question}`, 'additional_question');
+                    });
+                }
+                if (audioData) {
+                    var audioPlayer = document.getElementById('audio-player');
+                    audioPlayer.src = 'data:audio/wav;base64,' + audioData;
+                    $('#audio-container').show(); // Show the audio container
+                    $('#listen-btn').show(); // Show the listen button
+                }
+            }
+
+            function sendMessage(role, message, type = 'message') {
+                $('#chat-messages').append(`<div class="message ${role} ${type}">${message}</div>`);
+            }
+        });
+    </script>
+</body>
+</html>
