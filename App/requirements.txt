@@ -1,12 +1,15 @@
+streamlit
 openai
 llama-index
 nltk
 langchain
 pyttsx3
+streamlit-webrtc 
 SpeechRecognition
 gtts
 langchain_community
 chromadb
+sentence-transformers
 llama-index-embeddings-langchain
 SpeechRecognition
 pyttsx3
